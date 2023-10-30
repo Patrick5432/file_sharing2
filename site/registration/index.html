@@ -11,17 +11,18 @@
         <div class="registration_user">
             <span>Регистрация пользователя</span>
         </div>
-        <form action="#">
+        <form method="POST" action="#">
             <div class="name">
                 <label>Ваш логин</label>
-                <input type="name" name="register_name" placeholder="Введите логин" required>
+                <input type="text" name="signup_name" id="reg-name" placeholder="Введите логин" required>
             </div>
             <div class="password">
                 <label>Ваш пароль</label>
-                <input type="password" name="register_password" placeholder="Введите пароль" required>
+                <input type="password" name="signup_pass" id="reg-pass" placeholder="Введите пароль" required>
             </div>
-            <button class="form_register_button" type="submit">Зарегистрироваться</button>
+            <button value="register" type="submit" name="form_signup_button" id="signup-sumbit">Зарегистрироваться</button>
         </form>
+        <script src="./script.js"></script>
     </main>
 </body>
 </html>

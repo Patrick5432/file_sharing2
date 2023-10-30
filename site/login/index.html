@@ -13,17 +13,18 @@
         <div class="login_user">
             <span>Логин пользователя</span>
         </div>
-        <form action="#">
+        <form method="POST" action="#">
             <div class="name">
                 <label>Ваш логин:</label>
-                <input type="name" name="auth_name" placeholder="Введите ваш логин" required>
+                <input type="text" name="auth_name" id="login-name" placeholder="Введите ваш логин" required>
             </div>
             <div class="password">
                 <label>Ваш пароль:</label>
-                <input type="password" name="auth_password" placeholder="Введите ваш пароль" required>
+                <input type="text" name="auth_password" id="login-pass" placeholder="Введите ваш пароль" required>
             </div>
-            <button class="form_auth_button" type="submit" name="form_auth_button">Войти</button>
+            <button value="login" type="submit" name="form_auth_button" id="login-sumbit">Войти</button>
         </form>
+        <script src="./script.js"></script>
     </main>
 </body>
 

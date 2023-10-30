@@ -1,12 +1,12 @@
 const port = 3000
 const DB = "./db/Users.sqlite"
 const sqlite3 = require("sqlite3")
+const cors = require("cors")
 const express = require("express")
-const bodyParser = require("body-parser")
 const app = express()
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json())
+app.use(express.json())
+app.use(cors())
 
 //Создаем и подключаем бд
 let db = new sqlite3.Database(DB, (err) => {
@@ -35,40 +35,68 @@ let db = new sqlite3.Database(DB, (err) => {
 
 //Логин пользователя
 
-// app.post("/login", (req, res) => {
-//     const {Username, Password} = req.body
-//     console.log(Username + " " + Password)
+app.post("/login", (req, res) => {
+    const {auth_name, auth_password} = req.body
 
-//     db.all(`SELECT * FROM Users WHERE Name = ${Username} AND Password = ${Password}`, (err, row) => {
-
-//     })
-// })
+    db.get(`SELECT * FROM Users WHERE Name = ? AND Password = ?`,
+    [auth_name, auth_password], (err, row) => {
+        if (err) {
+            res.status(500).send("Internal server error")
+            return
+        }
+        if (row) {
+            res.status(200).send("Login successful")
+        }
+        else {
+            res.status(401).send("Invalid credentials")
+        }
+    })
+})
 
 //Регистрация пользователя
 
-// app.post("/registation", (req, res) => {
-//     const {name, password} = req.body
-//     if (!(name === undefined && password === undefined)) {
-//         res.status(400).send("Вы не заполнили поля")
-//     }
-//     const insert = "INSERT INTO Users (Name, Password) VALUES (?,?)"
-//     db.run(insert, [name, password])
-//     res.send(`Ваш логин: ${name} Ваш пароль ${password}`)
-// })
+app.post("/registration", (req, res) => {
+    const {signup_name, signup_pass} = req.body
+    if (signup_name.trim() === "" || signup_pass.trim() === "") {
+        res.status(400).send("Имя пользователя и пароль не могут быть пустыми.")
+        return;
+    }
+
+    const checkUserQuery = "SELECT * FROM Users WHERE Name = ?"
+    db.get(checkUserQuery, [signup_name], (err, row) => {
+        if (err) {
+            res.status(500).send("Ошибка при проверке пользователя")
+            return;
+        }
+        if (row) {
+            res.status(400).send("Пользователь с таким именем уже существует.")
+            return;
+        }
+
+        const insertUserQuery = "INSERT INTO Users (Name, Password) VALUES (?,?)"
+        db.run(insertUserQuery, [signup_name, signup_pass], (err) => {
+            if (err) {
+                res.status(500).send("Ошибка при регистрации пользователя")
+                return;
+            }
+            res.redirect("./site/login/index.html")
+        })
+    })
+})
 
 //Получение всех пользователей
 
-// app.get("/users", async (req, res) => {
-//     db.all("SELECT * FROM Users", (err, rows) => {
-//         if (err) {
-//             console.error(err.message)
-//         }
+app.get("/users", async (req, res) => {
+    db.all("SELECT * FROM Users", (err, rows) => {
+        if (err) {
+            console.error(err.message)
+        }
 
-//         rows.forEach((row) => {
-//             res.send(row)
-//         })
-//     })
-// })
+        rows.forEach((row) => {
+            res.send(row)
+        })
+    })
+})
 
 
 app.post("/", (req, res) => {

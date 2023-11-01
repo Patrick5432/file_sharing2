@@ -8,6 +8,8 @@
 3. https://www.youtube.com/watch?v=CBWtETJ0LUY
 (React Login and User Authentication (with Node JS ,Express JS and SQLite ))
 
+4. https://fullstacksoup.blog/2021/09/17/node-js-api-jwt-authentication-with-sqlite-database/
+(Node.js — аутентификация API JWT с базой данных SQLite)
 
 
 

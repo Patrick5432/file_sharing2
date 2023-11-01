@@ -2,7 +2,10 @@ const port = 3000
 const DB = "./db/Users.sqlite"
 const sqlite3 = require("sqlite3")
 const cors = require("cors")
+const jwt = require("jsonwebtoken")
+const bcrypt = require("bcrypt")
 const express = require("express")
+require("dotenv").config()
 const app = express()
 
 app.use(express.json())
@@ -15,18 +18,21 @@ let db = new sqlite3.Database(DB, (err) => {
         throw err
     }
     else {
+        const salt = bcrypt.genSaltSync(10)
         db.run(`CREATE TABLE Users (
             Id INTEGER PRIMARY KEY AUTOINCREMENT,
             Name TEXT,
-            Password TEXT
+            Password TEXT,
+            Salt TEXT,
+            Token TEXT
         )`,
             (err) => {
                 if (err) {
                     console.error("Таблица уже создана")
                 }
                 else {
-                    const insert = 'INSERT INTO Users (NAME, PASSWORD) VALUES (?,?)'
-                    db.run(insert, ["TestUser", "TestUser"])
+                    const insert = 'INSERT INTO Users (Name, Password, Salt) VALUES (?,?,?)'
+                    db.run(insert, ["TestUser", bcrypt.hashSync("TestUser", salt), salt])
                     console.log("Создание таблицы и заполнение данными")
                 }
             })
@@ -55,7 +61,7 @@ app.post("/login", (req, res) => {
 
 //Регистрация пользователя
 
-app.post("/registration", (req, res) => {
+app.post("/registration", async (req, res) => {
     const {signup_name, signup_pass} = req.body
     if (signup_name.trim() === "" || signup_pass.trim() === "") {
         res.status(400).send("Имя пользователя и пароль не могут быть пустыми.")
@@ -73,20 +79,26 @@ app.post("/registration", (req, res) => {
             return;
         }
 
-        const insertUserQuery = "INSERT INTO Users (Name, Password) VALUES (?,?)"
-        db.run(insertUserQuery, [signup_name, signup_pass], (err) => {
+        const salt = bcrypt.genSaltSync(10)
+        const data = {
+            Username: signup_name,
+            Password: bcrypt.hashSync(signup_pass, salt),
+            Salt: salt
+        }
+        const insertUserQuery = "INSERT INTO Users (Name, Password, Salt) VALUES (?,?,?)"
+        db.run(insertUserQuery, [data.Username, data.Password, data.Salt], (err) => {
             if (err) {
                 res.status(500).send("Ошибка при регистрации пользователя")
                 return;
             }
-            res.redirect("./site/login/index.html")
+            // res.redirect("./site/login/index.html")
         })
     })
 })
 
 //Получение всех пользователей
 
-app.get("/users", async (req, res) => {
+app.get("/users", (req, res) => {
     db.all("SELECT * FROM Users", (err, rows) => {
         if (err) {
             console.error(err.message)

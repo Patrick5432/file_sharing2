@@ -2,10 +2,10 @@ const port = 3000
 const DB = "./db/Users.sqlite"
 const sqlite3 = require("sqlite3")
 const cors = require("cors")
-const jwt = require("jsonwebtoken")
 const bcrypt = require("bcrypt")
+const jwt = require('jsonwebtoken')
 const express = require("express")
-require("dotenv").config()
+const { error } = require("console")
 const app = express()
 
 app.use(express.json())
@@ -39,82 +39,123 @@ let db = new sqlite3.Database(DB, (err) => {
     }
 })
 
+
+// Как сделать так, чтобы страницу видел только один пользователей со сгенерированным jwt токеном?
+
 //Логин пользователя
 
-app.post("/login", (req, res) => {
-    const {auth_name, auth_password} = req.body
+app.post("/login", async (req, res) => {
+    const { auth_name, auth_password } = req.body
 
-    db.get(`SELECT * FROM Users WHERE Name = ? AND Password = ?`,
-    [auth_name, auth_password], (err, row) => {
-        if (err) {
-            res.status(500).send("Internal server error")
-            return
+    try {
+        const checkUserQuery = "SELECT * FROM Users WHERE Name = ?"
+        const user = await new Promise((resolve, reject) => {
+            db.get(checkUserQuery, [auth_name], (err, row) => {
+                if (err) {
+                    reject(err)
+                } else {
+                    resolve(row)
+                }
+            })
+        })
+
+        if (user) {
+            const isPasswordValid = bcrypt.compareSync(auth_password, user.Password)
+            if (isPasswordValid) {
+                let token = user.Token // Получение текущего токена из базы данных
+
+                if (!token) {
+                    // Если у пользователя отсутствует токен, генерируем новый
+                    token = jwt.sign({ userId: user.id }, 'секретный_ключ', { expiresIn: '1h' })
+
+                    const updateUserQuery =
+                        "UPDATE Users SET Token = ? WHERE Name = ?"
+                    db.run(updateUserQuery, [token, auth_name], (err) => {
+                        if (err) {
+                            console.error(err.message)
+                        }
+                    })
+                } else {
+                    // Если у пользователя уже есть токен, удаляем старый и генерируем новый
+                    jwt.verify(token, 'секретный_ключ', (err, decoded) => {
+                        if (err) {
+                            token = jwt.sign({ userId: user.id }, 'секретный_ключ', { expiresIn: '1h' })
+
+                            const updateUserQuery =
+                                "UPDATE Users SET Token = ? WHERE Name = ?"
+                            db.run(updateUserQuery, [token, auth_name], (err) => {
+                                if (err) {
+                                    console.error(err.message)
+                                }
+                            })
+                        }
+                    })
+                }
+
+                res.status(200).json({ token })
+            } else {
+                res.status(401).send("Неверные учетные данные")
+            }
+        } else {
+            res.status(401).send("Неверные учетные данные")
         }
-        if (row) {
-            res.status(200).send("Login successful")
-        }
-        else {
-            res.status(401).send("Invalid credentials")
-        }
-    })
+    } catch (error) {
+        res.status(500).send("Внутренняя ошибка сервера")
+    }
 })
 
 //Регистрация пользователя
 
 app.post("/registration", async (req, res) => {
-    const {signup_name, signup_pass} = req.body
+    const { signup_name, signup_pass } = req.body
     if (signup_name.trim() === "" || signup_pass.trim() === "") {
         res.status(400).send("Имя пользователя и пароль не могут быть пустыми.")
-        return;
+        return
     }
 
-    const checkUserQuery = "SELECT * FROM Users WHERE Name = ?"
-    db.get(checkUserQuery, [signup_name], (err, row) => {
-        if (err) {
-            res.status(500).send("Ошибка при проверке пользователя")
-            return;
-        }
+    try {
+
+        const checkUserQuery = "SELECT * FROM Users WHERE Name = ?"
+        const row = await new Promise((resolve, reject) => {
+            db.get(checkUserQuery, [signup_name], (err, row) => {
+                if (err) {
+                    reject(err)
+                } else {
+                    resolve(row)
+                }
+            })
+        })
+
         if (row) {
             res.status(400).send("Пользователь с таким именем уже существует.")
-            return;
+            return
         }
 
         const salt = bcrypt.genSaltSync(10)
         const data = {
             Username: signup_name,
             Password: bcrypt.hashSync(signup_pass, salt),
-            Salt: salt
-        }
-        const insertUserQuery = "INSERT INTO Users (Name, Password, Salt) VALUES (?,?,?)"
-        db.run(insertUserQuery, [data.Username, data.Password, data.Salt], (err) => {
-            if (err) {
-                res.status(500).send("Ошибка при регистрации пользователя")
-                return;
-            }
-            // res.redirect("./site/login/index.html")
-        })
-    })
-})
-
-//Получение всех пользователей
-
-app.get("/users", (req, res) => {
-    db.all("SELECT * FROM Users", (err, rows) => {
-        if (err) {
-            console.error(err.message)
+            Salt: salt,
         }
 
-        rows.forEach((row) => {
-            res.send(row)
+        const insertUserQuery =
+            "INSERT INTO Users (Name, Password, Salt) VALUES (?,?,?)"
+
+        await new Promise((resolve, reject) => {
+            db.run(insertUserQuery, [data.Username, data.Password, data.Salt], (err) => {
+                if (err) {
+                    reject(err)
+                } else {
+                    resolve()
+                }
+            })
         })
-    })
-})
 
+        res.send("Пользователь успешно зарегистрирован.")
 
-app.post("/", (req, res) => {
-    const {username, password} = req.body
-    console.log(username)
-    console.log(password)
+    } catch (error) {
+        res.status(500).send("Произошла ошибка при попытке регистрации пользователя.")
+    }
 })
 
 //Запускаем сервер

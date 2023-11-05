@@ -6,6 +6,7 @@ const bcrypt = require("bcrypt")
 const jwt = require('jsonwebtoken')
 const express = require("express")
 const { error } = require("console")
+const multer = require("multer")
 const app = express()
 
 app.use(express.json())
@@ -41,7 +42,11 @@ let db = new sqlite3.Database(DB, (err) => {
 
 //Логин пользователя
 
-app.post("/login", async (req, res) => {
+app.get("/file_sharing/login", (req, res) => {
+    res.sendFile(__dirname + "/site/login/index.html")
+})
+
+app.post("/file_sharing/login", async (req, res) => {
     const { auth_name, auth_password } = req.body
 
     try {
@@ -103,7 +108,11 @@ app.post("/login", async (req, res) => {
 
 //Регистрация пользователя
 
-app.post("/registration", async (req, res) => {
+app.get("/file_sharing/registration", (req, res) => {
+    res.sendFile(__dirname + "/site/registration/index.html")
+})
+
+app.post("/file_sharing/registration", async (req, res) => {
     const { signup_name, signup_pass } = req.body
     if (signup_name.trim() === "" || signup_pass.trim() === "") {
         res.status(400).send("Имя пользователя и пароль не могут быть пустыми.")
@@ -147,8 +156,7 @@ app.post("/registration", async (req, res) => {
                 }
             })
         })
-
-        res.send("Пользователь успешно зарегистрирован.")
+        res.status(200).send("Пользователь успешно зарегистрирован.")
 
     } catch (error) {
         res.status(500).send("Произошла ошибка при попытке регистрации пользователя.")

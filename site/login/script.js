@@ -1,12 +1,12 @@
-const form = document.querySelector('form');
+const form = document.querySelector('form')
 
 form.addEventListener('submit', (e) => {
-  e.preventDefault();
+  e.preventDefault()
 
-  const auth_name = document.getElementById('login-name').value;
-  const auth_password = document.getElementById('login-pass').value;
+  const auth_name = document.getElementById('login-name').value
+  const auth_password = document.getElementById('login-pass').value
 
-  fetch('http://localhost:3000/login', {
+  fetch('http://localhost:3000/file_sharing/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -15,12 +15,12 @@ form.addEventListener('submit', (e) => {
   })
     .then((response) => {
       if (response.ok) {
-        console.log('Login successful');
+        console.log('Login successful')
       } else {
-        console.error('Login failed');
+        console.error('Login failed')
       }
     })
     .catch((error) => {
-      console.error(error);
-    });
-});
+      console.error(error)
+    })
+})
